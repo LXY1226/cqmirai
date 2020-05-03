@@ -3,15 +3,18 @@ package main
 import (
 	"gitee.com/LXY1226/logging"
 	"github.com/gorilla/websocket"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fastjson"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type CMiraiConn struct {
 	authKey    string // "1234567890"
 	qNumber    string // "2702342827"
+	i64qNumber int    // 2702342827
 	miraiAddr  string // "127.0.0.1:8086"
 	sessionKey string
 	*websocket.Conn
@@ -26,22 +29,26 @@ type CMiraiWSRConn struct {
 var parserPool fastjson.ParserPool
 
 var userCache map[string]map[string]string
+var IteratorPool jsoniter.IteratorPool
 
 func main() {
 	/*	m := sJson.Unmarshal([]byte("{\"action\": \"get_group_member_info\", \"params\": {\"self_id\": 2702342827, \"group_id\": 1065962966, \"user_id\": 767763591, \"no_cache\": true}, \"echo\": {\"seq\": 77}}"))
 		println(m)
 		os.Exit(0)*/
+	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
+
 	logging.Init()
-	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", "2702342827")
+	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", 2702342827)
 	miraiConnWSR := miraiConn.NewCQWSR("127.0.0.1:8080")
 	miraiConnWSR.ListenAndRedirect()
 }
 
-func NewMirai(miraiAddr, authKey, qNumber string) *CMiraiConn {
+func NewMirai(miraiAddr, authKey string, qNumber int) *CMiraiConn {
 	c := CMiraiConn{
-		authKey:   authKey,
-		qNumber:   qNumber,
-		miraiAddr: miraiAddr,
+		authKey:    authKey,
+		qNumber:    strconv.Itoa(qNumber),
+		i64qNumber: qNumber,
+		miraiAddr:  miraiAddr,
 	}
 	logging.INFO("尝试连接至Mirai: ws://", c.miraiAddr)
 	req := fasthttp.AcquireRequest()
