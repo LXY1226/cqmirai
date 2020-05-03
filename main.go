@@ -10,9 +10,10 @@ import (
 )
 
 type CMiraiConn struct {
-	authKey   string // "1234567890"
-	qNumber   string // "2702342827"
-	miraiAddr string // "127.0.0.1:8086"
+	authKey    string // "1234567890"
+	qNumber    string // "2702342827"
+	miraiAddr  string // "127.0.0.1:8086"
+	sessionKey string
 	*websocket.Conn
 }
 
@@ -24,7 +25,12 @@ type CMiraiWSRConn struct {
 
 var parserPool fastjson.ParserPool
 
+var userCache map[string]map[string]string
+
 func main() {
+	/*	m := sJson.Unmarshal([]byte("{\"action\": \"get_group_member_info\", \"params\": {\"self_id\": 2702342827, \"group_id\": 1065962966, \"user_id\": 767763591, \"no_cache\": true}, \"echo\": {\"seq\": 77}}"))
+		println(m)
+		os.Exit(0)*/
 	logging.Init()
 	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", "2702342827")
 	miraiConnWSR := miraiConn.NewCQWSR("127.0.0.1:8080")
@@ -59,8 +65,8 @@ func NewMirai(miraiAddr, authKey, qNumber string) *CMiraiConn {
 		return nil
 	}
 	req.SetRequestURI("http://" + c.miraiAddr + "/verify")
-	sessionKey := string(j.GetStringBytes("session"))
-	req.SetBodyString("{\"sessionKey\": \"" + sessionKey + "\",\"qq\":\"" + c.qNumber + "\"}")
+	c.sessionKey = string(j.GetStringBytes("session"))
+	req.SetBodyString("{\"sessionKey\": \"" + c.sessionKey + "\",\"qq\":\"" + c.qNumber + "\"}")
 	err = fasthttp.Do(req, resp)
 	if err != nil {
 		logging.WARN("验证Mirai会话失败: ", err.Error())
@@ -75,7 +81,7 @@ func NewMirai(miraiAddr, authKey, qNumber string) *CMiraiConn {
 		logging.WARN("解析Mirai会话失败: ", string(j.GetStringBytes("msg")))
 		return nil
 	}
-	c.Conn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/all?sessionKey="+sessionKey, nil)
+	c.Conn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/all?sessionKey="+c.sessionKey, nil)
 	if err != nil {
 		logging.WARN("连接至Mirai失败: ", err.Error())
 		return nil
@@ -116,7 +122,7 @@ func (c *CMiraiWSRConn) ListenAndRedirect() {
 					os.Exit(0) // TODO 多实例优化
 				}
 				if t == websocket.TextMessage {
-					logging.INFO("-> ", string(message))
+					logging.INFO("> ", string(message))
 					err := c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
 					if err != nil {
 						logging.ERROR("向CQbot发送消息失败: ", err.Error())
@@ -140,10 +146,10 @@ func (c *CMiraiWSRConn) ListenAndRedirect() {
 			os.Exit(0) // TODO 多实例优化
 		}
 		if t == websocket.TextMessage {
-			logging.INFO("-> ", string(message))
-			err := c.miraiConn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
+			logging.INFO("< ", string(message))
+			err = c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
 			if err != nil {
-				logging.ERROR("向Mirai发送消息失败: ", err.Error())
+				logging.ERROR("向CQBot回复失败: ", err.Error())
 				os.Exit(0) // TODO 多实例优化
 			}
 		} else {
