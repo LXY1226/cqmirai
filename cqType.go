@@ -52,7 +52,7 @@ type cqRequest struct {
 	Echo   jsoniter.RawMessage `json:"echo"`
 }
 
-type cqParams struct {
+type cqGroupMemberInfoReq struct {
 	SelfID  int64 `json:"self_id"`
 	GroupID int   `json:"group_id"`
 	UserID  int   `json:"user_id"`
@@ -60,24 +60,24 @@ type cqParams struct {
 }
 
 type cqResponse struct {
-	Data    jsoniter.Any        `json:"data"`
+	Data    jsoniter.RawMessage `json:"data"`
 	Echo    jsoniter.RawMessage `json:"echo"`
 	Retcode int                 `json:"retcode"`
 	Status  string              `json:"status"`
 }
 
-type cqResponseSendMsg struct {
+type cqSendMsgResp struct {
 	MessageID int `json:"message_id"`
 }
 
-type cqResponseGroupMemberInfo struct {
+type cqGroupMemberInfoRsp struct {
 	Age             int    `json:"age,omitempty"`
 	Area            string `json:"area,omitempty"`
 	Card            string `json:"card,omitempty"`
 	CardChangeable  bool   `json:"card_changeable,omitempty"`
 	GroupID         int    `json:"group_id,omitempty"`
 	JoinTime        int    `json:"join_time,omitempty"`
-	LastSentTime    int    `json:"last_sent_time,omitempty"`
+	LastSentTime    int64  `json:"last_sent_time,omitempty"`
 	Level           string `json:"level,omitempty"`
 	Nickname        string `json:"nickname,omitempty"`
 	Role            string `json:"role,omitempty"`

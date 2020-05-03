@@ -28,7 +28,7 @@ type CMiraiWSRConn struct {
 
 var parserPool fastjson.ParserPool
 
-var userCache map[string]map[string]string
+var userData map[int]map[int][]byte
 var IteratorPool jsoniter.IteratorPool
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 		println(m)
 		os.Exit(0)*/
 	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
-
+	userData = make(map[int]map[int][]byte)
 	logging.Init()
 	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", 2702342827)
 	miraiConnWSR := miraiConn.NewCQWSR("127.0.0.1:8080")

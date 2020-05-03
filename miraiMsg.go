@@ -6,6 +6,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func parseMsgChain(miraiMsg *Message, cqMsg *cqMessage) {
@@ -28,6 +29,12 @@ func parseMsgChain(miraiMsg *Message, cqMsg *cqMessage) {
 			msgBuf.WriteString("[CQ:at,qq=")
 			msgBuf.WriteString(strconv.Itoa(msg.Target))
 			msgBuf.WriteByte(']')
+		case "Image":
+			msgBuf.WriteString("[CQ:image,file=")
+			msgBuf.WriteString(msg.ImageID)
+			msgBuf.WriteString(",url=")
+			msgBuf.WriteString(msg.URL)
+			msgBuf.WriteByte(']')
 		}
 	}
 	cqMsg.Message = jsoniter.WrapString(msgBuf.String())
@@ -44,6 +51,21 @@ func formatPerm(miraiPrem string) string {
 }
 
 func (c *CMiraiWSRConn) MiraiGroupMessage(miraiMsg *Message) []byte {
+	o, err := json.Marshal(cqGroupMemberInfoRsp{
+		GroupID:      miraiMsg.Sender.Group.ID,
+		LastSentTime: time.Now().Unix(),
+		Nickname:     miraiMsg.Sender.MemberName,
+		Role:         formatPerm(miraiMsg.Sender.Permission),
+		UserID:       miraiMsg.Sender.ID,
+	})
+	if err != nil {
+		logging.WARN("生成用户群缓存错误：", err.Error())
+		return nil
+	}
+	if _, ok := userData[miraiMsg.Sender.ID]; !ok {
+		userData[miraiMsg.Sender.ID] = make(map[int][]byte)
+	}
+	userData[miraiMsg.Sender.ID][miraiMsg.Sender.Group.ID] = o
 	cqMsg := new(cqMessage)
 	if miraiMsg.Sender.ID == 80000000 {
 		cqMsg.Anonymous = new(cqAnonymous)
@@ -57,7 +79,7 @@ func (c *CMiraiWSRConn) MiraiGroupMessage(miraiMsg *Message) []byte {
 	cqMsg.Sender.Role = formatPerm(miraiMsg.Sender.Permission)
 	cqMsg.Sender.UserID = miraiMsg.Sender.ID
 	cqMsg.UserID = miraiMsg.Sender.ID
-	o, err := json.Marshal(cqMsg)
+	o, err = json.Marshal(cqMsg)
 	if err != nil {
 		logging.WARN("生成CQ回复错误：", err.Error())
 		return nil

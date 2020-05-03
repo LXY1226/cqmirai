@@ -34,11 +34,11 @@ func (c *CMiraiConn) DoReq(method, path, param string, body []byte) *fastjson.Va
 	return j
 }
 
-func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) []byte {
+func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) string {
 	img, err := base64.StdEncoding.DecodeString(dataURI[9:])
 	if err != nil {
 		logging.WARN("反Base64出错: ", err.Error())
-		return nil
+		return ""
 	}
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
@@ -50,9 +50,12 @@ func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) []byte {
 	w := multipart.NewWriter(buf)
 	w.WriteField("sessionKey", c.miraiConn.sessionKey)
 	w.WriteField("type", imgTarget)
-	fw, err := w.CreateFormFile("img", "1d595495-0580-49ec-b96c-cc3346096718")
+	fw, err := w.CreateFormFile("img", imgTarget)
 	fw.Write(img)
+	w.Close()
 	req.SetBody(buf.Bytes())
+	req.Header.SetContentType(w.FormDataContentType())
+	req.MultipartForm()
 	err = fasthttp.Do(req, resp)
 	if err != nil {
 		logging.WARN("上传图片出错: ", err.Error())
@@ -62,9 +65,9 @@ func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) []byte {
 	j, err := parser.ParseBytes(resp.Body())
 	if err != nil {
 		logging.WARN("上传图片解析出错: ", err.Error())
-		return nil
+		return ""
 	}
-	return j.GetStringBytes("imageId")
+	return string(j.GetStringBytes("imageId"))
 }
 
 func quoteASCII(msg string) []byte {
@@ -78,10 +81,34 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 			Type: "Plain",
 			Text: quoteASCII(msg.ToString()),
 		}}
+	case jsoniter.ObjectValue:
+		m := new(cqMsgData)
+		err := json.UnmarshalFromString(msg.ToString(), &m)
+		if err != nil {
+			logging.WARN("解析CQ消息失败: ", err.Error())
+			return nil
+		}
+		switch m.Type {
+		case "at":
+			return []MessageChain{{
+				Type:   "At",
+				Target: m.Data.Get("qq").ToInt(),
+			}}
+		case "text":
+			return []MessageChain{{
+				Type: "Plain",
+				Text: quoteASCII(m.Data.Get("text").ToString()),
+			}}
+		case "image":
+			return []MessageChain{{
+				Type:    "Image",
+				ImageID: c.uploadImage(m.Data.Get("file").ToString(), imgTarget),
+			}}
+		}
 	case jsoniter.ArrayValue:
 		var cs []MessageChain
 		chains := cqMsgDatas{}
-		err := json.UnmarshalFromString(msg.ToString(), chains)
+		err := json.UnmarshalFromString(msg.ToString(), &chains)
 		if err != nil {
 			logging.WARN("解析CQ消息失败: ", err.Error())
 			return nil
@@ -101,19 +128,16 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 			case "image":
 				c.uploadImage(msg.Data.Get("file").ToString(), imgTarget)
 				cs = append(cs, MessageChain{
-					Type:   "At",
-					Target: msg.Data.Get("qq").ToInt(),
+					Type:    "Image",
+					ImageID: c.uploadImage(msg.Data.Get("file").ToString(), imgTarget),
 				})
 			}
 		}
-		return nil
+		return cs
 	default:
-		//var chains []MessageChain
-		//for m := range msg.() {
-		//
-		//}
 		return nil
 	}
+	return nil
 }
 
 func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
@@ -165,14 +189,34 @@ func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
 		return nil
 	}
 	rs := new(cqResponse)
-	rs.Data = jsoniter.Wrap(cqResponseSendMsg{MessageID: rj.MessageID})
+	rs.Data, err = json.Marshal(cqSendMsgResp{MessageID: rj.MessageID})
+	if err != nil {
+		logging.WARN("生成CQ回复出错: ", err.Error())
+		return nil
+	}
 	rs.Retcode = 0
 	rs.Status = "ok"
 	return rs
 }
 
 // TODO 尚未实现
-func (c *CMiraiWSRConn) getGroupMemberInfo(j *fastjson.Value) []byte {
-	echo := j.Get("echo").MarshalTo(nil)
-	return append([]byte("{\"data\":{},"), append(echo, "\"retcode\":0,\"status\":\"ok\"}"...)...)
+func (c *CMiraiWSRConn) getGroupMemberInfo(params string) *cqResponse {
+	msg := new(cqGroupMemberInfoReq)
+	err := json.UnmarshalFromString(params, msg)
+	if err != nil {
+		logging.WARN("解析CQ消息失败: ", err.Error())
+		return nil
+	}
+	if data, ok := userData[msg.UserID][msg.GroupID]; ok {
+		return &cqResponse{
+			Data:    data,
+			Retcode: 0,
+			Status:  "ok",
+		}
+	}
+	return &cqResponse{
+		Data:    nil,
+		Retcode: 0,
+		Status:  "ok",
+	}
 }

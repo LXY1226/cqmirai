@@ -16,22 +16,25 @@ func (c *CMiraiWSRConn) TransMsgToMirai(msg []byte) []byte {
 		logging.WARN("解析CQ消息失败: ", err.Error())
 		return nil
 	}
+	var cqResp *cqResponse
 	switch req.Action {
 	case "send_msg":
-		cqResp := c.sendMsg(req.Params.ToString())
-		cqResp.Echo = req.Echo
-		o, err := json.Marshal(cqResp)
-		if err != nil {
-			logging.WARN("生成CQ回执失败: ", err.Error())
-			return nil
-		}
-		return o
+		cqResp = c.sendMsg(req.Params.ToString())
 	case "get_group_member_info":
-		//return c.getGroupMemberInfo(j)
-		return append([]byte("{"), append(req.Echo, '}')...)
-	default:
-		return append([]byte("{"), append(req.Echo, '}')...)
+		cqResp = c.getGroupMemberInfo(req.Params.ToString())
+		//case "set_group_ban":
+		//	cqResp = c.set_group_ban(req.Params.ToString())
 	}
+	if cqResp == nil {
+		return append([]byte(`{"data":null,`), append(req.Echo, `,"retcode":0,"status":"ok"}`...)...)
+	}
+	cqResp.Echo = req.Echo
+	o, err := json.Marshal(cqResp)
+	if err != nil {
+		logging.WARN("生成CQ回执失败: ", err.Error())
+		return nil
+	}
+	return o
 }
 
 func (c *CMiraiWSRConn) TransMsgToCQ(msg []byte) []byte {
