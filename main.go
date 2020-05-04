@@ -8,6 +8,7 @@ import (
 	"github.com/valyala/fastjson"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 const (
@@ -55,8 +56,10 @@ func main() {
 		cqAddr:     cqWSRAddr,
 	}
 	for !miraiConn.ConnectMirai() {
+		time.Sleep(3 * time.Second)
 	}
 	for !miraiConn.ConnectCQBot() {
+		time.Sleep(3 * time.Second)
 	}
 	miraiConn.Redirect()
 }
@@ -136,6 +139,7 @@ func (c *CMiraiConn) Redirect() {
 				logging.ERROR("从Mirai读取消息失败: ", err.Error())
 				c.miraiConn.Close()
 				for !c.ConnectMirai() {
+					time.Sleep(3 * time.Second)
 				}
 				continue
 			}
@@ -145,6 +149,7 @@ func (c *CMiraiConn) Redirect() {
 					logging.ERROR("向CQbot发送消息失败: ", err.Error())
 					c.cqConn.Close()
 					for !c.ConnectCQBot() {
+						time.Sleep(3 * time.Second)
 					}
 					continue
 				}
@@ -160,6 +165,7 @@ func (c *CMiraiConn) Redirect() {
 			logging.ERROR("从CQBot读取消息失败: ", err.Error())
 			c.cqConn.Close()
 			for !c.ConnectCQBot() {
+				time.Sleep(3 * time.Second)
 			}
 			continue
 		}
@@ -169,6 +175,7 @@ func (c *CMiraiConn) Redirect() {
 				logging.ERROR("向CQBot回复失败: ", err.Error())
 				c.cqConn.Close()
 				for !c.ConnectCQBot() {
+					time.Sleep(3 * time.Second)
 				}
 				continue
 			}
