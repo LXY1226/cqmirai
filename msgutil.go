@@ -16,15 +16,21 @@ func (c *CMiraiWSRConn) TransMsgToMirai(msg []byte) []byte {
 		logging.WARN("解析CQ消息失败: ", err.Error())
 		return nil
 	}
+	logging.INFO("< ", req.Action)
 	var cqResp *cqResponse
 	switch req.Action {
 	case "send_msg":
 		cqResp = c.sendMsg(req.Params.ToString())
 	case "get_group_member_info":
 		cqResp = c.getGroupMemberInfo(req.Params.ToString())
-		//case "set_group_ban":
-		//	cqResp = c.set_group_ban(req.Params.ToString())
+	case "set_group_ban":
+		cqResp = c.setGroupBan(req.Params.ToString())
+	case "get_group_member_list":
+		cqResp = c.getGroupMemberList(req.Params.ToString())
+	default:
+		logging.INFO("< 未知请求：", req.Params.ToString())
 	}
+
 	if cqResp == nil {
 		return append([]byte(`{"data":null,`), append(req.Echo, `,"retcode":0,"status":"ok"}`...)...)
 	}
@@ -44,6 +50,7 @@ func (c *CMiraiWSRConn) TransMsgToCQ(msg []byte) []byte {
 		logging.WARN("解析Mirai消息失败: ", err.Error())
 		return nil
 	}
+	logging.INFO("> ", miraiMsg.Type)
 	switch miraiMsg.Type {
 	case "GroupMessage":
 		return c.MiraiGroupMessage(miraiMsg)

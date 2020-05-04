@@ -51,7 +51,7 @@ func formatPerm(miraiPrem string) string {
 }
 
 func (c *CMiraiWSRConn) MiraiGroupMessage(miraiMsg *Message) []byte {
-	o, err := json.Marshal(cqGroupMemberInfoRsp{
+	o, err := json.Marshal(cqGroupMemberInfoResp{
 		GroupID:      miraiMsg.Sender.Group.ID,
 		LastSentTime: time.Now().Unix(),
 		Nickname:     miraiMsg.Sender.MemberName,

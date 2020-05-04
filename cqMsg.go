@@ -152,10 +152,10 @@ func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
 	req.Header.SetMethod("POST")
-	req.Header.Add("Content-Type", "application/json; charset=gbk")
-	miraiMsg := new(outgoingMessage)
+	req.Header.Add("Content-Type", "application/json; charset=utf-8")
+	miraiMsg := new(MessageReq)
 	miraiMsg.SessionKey = c.miraiConn.sessionKey
-	imgTarget := "friend"
+	var imgTarget string
 	switch msg.MessageType {
 	case "group":
 		miraiMsg.Target = msg.GroupID
@@ -182,7 +182,7 @@ func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
 		logging.WARN("向Mirai请求出错: ", err.Error())
 		return nil
 	}
-	rj := new(MessageResponse)
+	rj := new(MessageResp)
 	err = json.Unmarshal(resp.Body(), rj)
 	if err != nil {
 		logging.WARN("解析Mirai回复出错: ", err.Error())
@@ -199,7 +199,6 @@ func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
 	return rs
 }
 
-// TODO 尚未实现
 func (c *CMiraiWSRConn) getGroupMemberInfo(params string) *cqResponse {
 	msg := new(cqGroupMemberInfoReq)
 	err := json.UnmarshalFromString(params, msg)
@@ -219,4 +218,101 @@ func (c *CMiraiWSRConn) getGroupMemberInfo(params string) *cqResponse {
 		Retcode: 0,
 		Status:  "ok",
 	}
+}
+
+func (c *CMiraiWSRConn) setGroupBan(params string) *cqResponse {
+	msg := new(cqGroupBanReq) // !!!!!!!!!!!!!!!!!!!!!!
+	err := json.UnmarshalFromString(params, msg)
+	if err != nil {
+		logging.WARN("解析CQ消息失败: ", err.Error())
+		return nil
+	}
+
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp)
+	req.Header.SetMethod("POST")
+	req.Header.Add("Content-Type", "application/json; charset=utf-8")
+
+	req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/mute")
+	mReq := new(MuteReq) // !!!!!!!!!!!!!!!!!!!!!!
+	mReq.SessionKey = c.miraiConn.sessionKey
+	mReq.Target = msg.GroupID
+	mReq.MemberID = msg.UserID
+	mReq.Time = msg.Duration
+
+	o, err := json.Marshal(mReq)
+	if err != nil {
+		logging.WARN("生成Mirai消息失败: ", err.Error())
+		return nil
+	}
+	req.SetBody(o)
+	err = fasthttp.Do(req, resp)
+	if err != nil {
+		logging.WARN("向Mirai请求出错: ", err.Error())
+		return nil
+	}
+
+	rj := new(MuteResp) // !!!!!!!!!!!!!!!!!!!!!!
+
+	err = json.Unmarshal(resp.Body(), rj)
+	if err != nil {
+		logging.WARN("解析Mirai回复出错: ", err.Error())
+		return nil
+	}
+	rs := new(cqResponse)
+	rs.Retcode = 0
+	rs.Status = "ok"
+	return rs
+}
+
+func (c *CMiraiWSRConn) getGroupMemberList(params string) *cqResponse {
+	msg := new(cqGroupMemberListReq)
+	err := json.UnmarshalFromString(params, msg)
+	if err != nil {
+		logging.WARN("解析CQ消息失败: ", err.Error())
+		return nil
+	}
+
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp)
+	req.Header.SetMethod("GET")
+
+	req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/memberList?sessionKey=" + c.miraiConn.sessionKey + "&target=" + strconv.Itoa(msg.GroupID))
+
+	err = fasthttp.Do(req, resp)
+	if err != nil {
+		logging.WARN("向Mirai请求出错: ", err.Error())
+		return nil
+	}
+
+	var rj MemberListResp
+
+	err = json.Unmarshal(resp.Body(), &rj)
+	if err != nil {
+		logging.WARN("解析Mirai回复出错: ", err.Error())
+		return nil
+	}
+
+	rs := new(cqResponse)
+	var re cqMemberLists
+	for _, info := range rj {
+		re = append(re, cqMemberList{
+			UserID:   info.ID,
+			GroupID:  info.Group.ID,
+			Nickname: info.MemberName,
+			Role:     formatPerm(info.Permission),
+		})
+	}
+	rs.Data, err = json.Marshal(&re)
+	if err != nil {
+		logging.WARN("生成CQ回复出错: ", err.Error())
+		return nil
+	}
+	rs.Retcode = 0
+	rs.Status = "ok"
+	return rs
 }

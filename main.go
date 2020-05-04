@@ -38,7 +38,7 @@ func main() {
 	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
 	userData = make(map[int]map[int][]byte)
 	logging.Init()
-	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", 2702342827)
+	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", 3215463081)
 	miraiConnWSR := miraiConn.NewCQWSR("127.0.0.1:8080")
 	miraiConnWSR.ListenAndRedirect()
 }
@@ -129,7 +129,6 @@ func (c *CMiraiWSRConn) ListenAndRedirect() {
 					os.Exit(0) // TODO 多实例优化
 				}
 				if t == websocket.TextMessage {
-					logging.INFO("> ", string(message))
 					err := c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
 					if err != nil {
 						logging.ERROR("向CQbot发送消息失败: ", err.Error())
@@ -153,7 +152,7 @@ func (c *CMiraiWSRConn) ListenAndRedirect() {
 			os.Exit(0) // TODO 多实例优化
 		}
 		if t == websocket.TextMessage {
-			logging.INFO("< ", string(message))
+
 			err = c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
 			if err != nil {
 				logging.ERROR("向CQBot回复失败: ", err.Error())

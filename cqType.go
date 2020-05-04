@@ -26,6 +26,26 @@ type cqMessage struct {
 	Title       string       `json:"title,omitempty"`
 }
 
+type cqMemberLists []cqMemberList
+
+type cqMemberList struct {
+	Age             int    `json:"age,omitempty"`
+	Area            string `json:"area,omitempty"`
+	Card            string `json:"card"`
+	CardChangeable  bool   `json:"card_changeable,omitempty"`
+	GroupID         int    `json:"group_id,omitempty"`
+	JoinTime        int    `json:"join_time,omitempty"`
+	LastSentTime    int    `json:"last_sent_time,omitempty"`
+	Level           string `json:"level,omitempty"`
+	Nickname        string `json:"nickname"`
+	Role            string `json:"role,omitempty"`
+	Sex             string `json:"sex,omitempty"`
+	Title           string `json:"title,omitempty"`
+	TitleExpireTime int    `json:"title_expire_time,omitempty"`
+	Unfriendly      bool   `json:"unfriendly,omitempty"`
+	UserID          int    `json:"user_id,omitempty"`
+}
+
 type cqMsgData struct {
 	Type string       `json:"type"`
 	Data jsoniter.Any `json:"data"`
@@ -59,6 +79,18 @@ type cqGroupMemberInfoReq struct {
 	NoCache bool  `json:"no_cache"`
 }
 
+type cqGroupMemberListReq struct {
+	SelfID  int64 `json:"self_id"`
+	GroupID int   `json:"group_id"`
+}
+
+type cqGroupBanReq struct {
+	SelfID   int64 `json:"self_id"`
+	GroupID  int   `json:"group_id"`
+	UserID   int   `json:"user_id"`
+	Duration int   `json:"duration"`
+}
+
 type cqResponse struct {
 	Data    jsoniter.RawMessage `json:"data"`
 	Echo    jsoniter.RawMessage `json:"echo"`
@@ -70,7 +102,7 @@ type cqSendMsgResp struct {
 	MessageID int `json:"message_id"`
 }
 
-type cqGroupMemberInfoRsp struct {
+type cqGroupMemberInfoResp struct {
 	Age             int    `json:"age,omitempty"`
 	Area            string `json:"area,omitempty"`
 	Card            string `json:"card,omitempty"`

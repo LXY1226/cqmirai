@@ -34,16 +34,44 @@ type MessageChain struct {
 
 type MessageChains []MessageChain
 
-type outgoingMessage struct {
-	SessionKey   string        `json:"sessionKey"`
+type MiraiReq struct {
+	SessionKey string `json:"sessionKey"`
+}
+
+type MessageReq struct {
+	MiraiReq
 	Target       int           `json:"target"`
 	MessageChain MessageChains `json:"messageChain"`
 }
 
-type MessageResponse struct {
-	Code      int    `json:"code"`
-	Msg       string `json:"msg"`
-	MessageID int    `json:"messageId"`
+type MuteReq struct {
+	MiraiReq
+	Target   int `json:"target"`
+	MemberID int `json:"memberId"`
+	Time     int `json:"time"`
+}
+
+type MiraiResp struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+}
+
+type MessageResp struct {
+	MiraiResp
+	MessageID int `json:"messageId"`
+}
+
+type MuteResp MiraiResp
+
+type MemberListResp []struct {
+	ID         int    `json:"id"`
+	MemberName string `json:"memberName"`
+	Permission string `json:"permission"`
+	Group      struct {
+		ID         int    `json:"id"`
+		Name       string `json:"name"`
+		Permission string `json:"permission"`
+	} `json:"group"`
 }
 
 type Sender struct {
