@@ -75,7 +75,7 @@ func quoteASCII(msg string) []byte {
 	return []byte(strconv.QuoteToASCII(msg))
 }
 
-func parseCQMsg(msg string) []MessageChain {
+func (c *CMiraiWSRConn) parseCQMsg(msg string, imgTarget string) []MessageChain {
 	last := 0
 	var mc []MessageChain
 	for start := strings.Index(msg[last:], `[CQ`); start != -1; start = strings.Index(msg[last:], `[CQ`) {
@@ -87,13 +87,20 @@ func parseCQMsg(msg string) []MessageChain {
 		last = end + 1
 		switch msg[start+4 : start+6] {
 		case "at":
-			num, err := strconv.Atoi(msg[strings.Index(msg[start+5:end], "qq=")+start+8 : end])
+			num, err := strconv.Atoi(msg[strings.Index(msg[start+6:end], "qq=")+start+8 : end])
 			if err != nil {
 				logging.WARN("CQ码解析失败：", msg[start:end])
 			}
 			mc = append(mc, MessageChain{
 				Type:   "At",
 				Target: num,
+			})
+		case "im": //image
+			b64Img := msg[strings.Index(msg[start+6:end], "base64://")+start+6 : end]
+
+			mc = append(mc, MessageChain{
+				Type:    "Image",
+				ImageID: c.uploadImage(b64Img, imgTarget),
 			})
 		default:
 			logging.WARN("CQ码未解析：", msg[start:end])
@@ -109,7 +116,7 @@ func parseCQMsg(msg string) []MessageChain {
 func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []MessageChain {
 	switch msg.ValueType() {
 	case jsoniter.StringValue:
-		return parseCQMsg(msg.ToString())
+		return c.parseCQMsg(msg.ToString(), imgTarget)
 	case jsoniter.ObjectValue:
 		m := new(cqMsgData)
 		err := json.UnmarshalFromString(msg.ToString(), &m)
@@ -124,7 +131,7 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 				Target: m.Data.Get("qq").ToInt(),
 			}}
 		case "text":
-			return parseCQMsg(m.Data.Get("text").ToString())
+			return c.parseCQMsg(m.Data.Get("text").ToString(), imgTarget)
 		case "image":
 			return []MessageChain{{
 				Type:    "Image",
@@ -147,7 +154,7 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 					Target: msg.Data.Get("qq").ToInt(),
 				})
 			case "text":
-				cs = append(cs, parseCQMsg(msg.Data.Get("text").ToString())...)
+				cs = append(cs, c.parseCQMsg(msg.Data.Get("text").ToString(), imgTarget)...)
 			case "image":
 				c.uploadImage(msg.Data.Get("file").ToString(), imgTarget)
 				cs = append(cs, MessageChain{
