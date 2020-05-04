@@ -7,7 +7,7 @@ import (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-func (c *CMiraiWSRConn) TransMsgToMirai(msg []byte) []byte {
+func (c *CMiraiConn) TransMsgToMirai(msg []byte) []byte {
 	//iter := IteratorPool.BorrowIterator(msg)
 	//iter.
 	req := new(cqRequest)
@@ -43,7 +43,7 @@ func (c *CMiraiWSRConn) TransMsgToMirai(msg []byte) []byte {
 	return o
 }
 
-func (c *CMiraiWSRConn) TransMsgToCQ(msg []byte) []byte {
+func (c *CMiraiConn) TransMsgToCQ(msg []byte) []byte {
 	miraiMsg := new(Message)
 	err := json.Unmarshal(msg, miraiMsg)
 	if err != nil {

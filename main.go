@@ -8,7 +8,10 @@ import (
 	"github.com/valyala/fastjson"
 	"net/http"
 	"strconv"
-	"time"
+)
+
+const (
+	TypeWSR = iota
 )
 
 type CMiraiConn struct {
@@ -17,7 +20,11 @@ type CMiraiConn struct {
 	i64qNumber int    // 2702342827
 	miraiAddr  string // "127.0.0.1:8086"
 	sessionKey string
-	*websocket.Conn
+	miraiConn  *websocket.Conn
+
+	cqConn     *websocket.Conn
+	cqConnType int
+	cqAddr     string
 }
 
 type CMiraiWSRConn struct {
@@ -38,25 +45,23 @@ func main() {
 	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
 	userData = make(map[int]map[int][]byte)
 	logging.Init()
-	miraiConn := NewMirai(miraiAddr, authKey, qNumber)
 
-	for {
-		miraiConnWSR := miraiConn.NewCQWSR(cqWSRAddr)
-		if miraiConnWSR != nil {
-			miraiConnWSR.ListenAndRedirect()
-		}
-		logging.WARN("连线失败")
-		time.Sleep(10 * time.Second)
-	}
-}
-
-func NewMirai(miraiAddr, authKey string, qNumber int) *CMiraiConn {
-	c := CMiraiConn{
+	miraiConn := CMiraiConn{
 		authKey:    authKey,
 		qNumber:    strconv.Itoa(qNumber),
 		i64qNumber: qNumber,
 		miraiAddr:  miraiAddr,
+		cqConnType: TypeWSR,
+		cqAddr:     cqWSRAddr,
 	}
+	for !miraiConn.ConnectMirai() {
+	}
+	for !miraiConn.ConnectCQBot() {
+	}
+	miraiConn.Redirect()
+}
+
+func (c *CMiraiConn) ConnectMirai() bool {
 	logging.INFO("尝试连接至Mirai: ws://", c.miraiAddr)
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
@@ -68,7 +73,7 @@ func NewMirai(miraiAddr, authKey string, qNumber int) *CMiraiConn {
 	err := fasthttp.Do(req, resp)
 	if err != nil {
 		logging.WARN("请求Mirai会话失败: ", err.Error())
-		return nil
+		return false
 	}
 	parser := parserPool.Get()
 	defer parserPool.Put(parser)
@@ -76,7 +81,7 @@ func NewMirai(miraiAddr, authKey string, qNumber int) *CMiraiConn {
 	j, err = parser.ParseBytes(resp.Body())
 	if err != nil {
 		logging.WARN("解析Mirai会话失败: ", err.Error())
-		return nil
+		return false
 	}
 	req.SetRequestURI("http://" + c.miraiAddr + "/verify")
 	c.sessionKey = string(j.GetStringBytes("session"))
@@ -84,92 +89,88 @@ func NewMirai(miraiAddr, authKey string, qNumber int) *CMiraiConn {
 	err = fasthttp.Do(req, resp)
 	if err != nil {
 		logging.WARN("验证Mirai会话失败: ", err.Error())
-		return nil
+		return false
 	}
 	j, err = parser.ParseBytes(resp.Body())
 	if err != nil {
 		logging.WARN("解析Mirai会话失败: ", err.Error())
-		return nil
+		return false
 	}
 	if j.GetInt("code") != 0 {
 		logging.WARN("解析Mirai会话失败: ", string(j.GetStringBytes("msg")))
-		return nil
+		return false
 	}
-	c.Conn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/all?sessionKey="+c.sessionKey, nil)
+	c.miraiConn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/all?sessionKey="+c.sessionKey, nil)
 	if err != nil {
 		logging.WARN("连接至Mirai失败: ", err.Error())
-		return nil
+		return false
 	}
-	return &c
+	return true
 }
 
-func (cm *CMiraiConn) NewCQWSR(cqWSRAddr string) *CMiraiWSRConn {
+func (c *CMiraiConn) ConnectCQBot() bool {
 	var err error
-	c := CMiraiWSRConn{
-		cqAddr:    cqWSRAddr,
-		miraiConn: cm,
+	switch c.cqConnType {
+	case TypeWSR:
+		logging.INFO("尝试连接至CQbot: ws://", c.cqAddr)
+		c.cqConn, _, err = websocket.DefaultDialer.Dial("ws://"+c.cqAddr+"/ws/", http.Header{
+			"X-Self-ID":     []string{c.qNumber},
+			"X-Client-Role": []string{"Universal"},
+			"User-Agent":    []string{"MiraiCQHttp/0.0.1"},
+		})
+		if err != nil {
+			logging.WARN("连接至CQbot失败: ", err.Error())
+			return false
+		}
 	}
-	logging.INFO("尝试连接至CQbot: ws://", c.cqAddr)
-	c.Conn, _, err = websocket.DefaultDialer.Dial("ws://"+c.cqAddr+"/ws/", http.Header{
-		"X-Self-ID":     []string{c.miraiConn.qNumber},
-		"X-Client-Role": []string{"Universal"},
-		"User-Agent":    []string{"MiraiCQHttp/0.0.1"},
-	})
-	if err != nil {
-		logging.WARN("连接至CQbot失败: ", err.Error())
-		return nil
-	}
-	return &c
+	return true
 }
 
 // 阻塞
-func (c *CMiraiWSRConn) ListenAndRedirect() {
+func (c *CMiraiConn) Redirect() {
 	logging.INFO("连接已建立")
-	done := make(chan struct{})
 	go func() {
 		for {
-			select {
-			case <-done:
-				return
-			default:
-				t, message, err := c.miraiConn.ReadMessage()
-				if err != nil {
-					logging.ERROR("从Mirai读取消息失败: ", err.Error())
-					close(done)
-				}
-				if t == websocket.TextMessage {
-					err := c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
-					if err != nil {
-						logging.ERROR("向CQbot发送消息失败: ", err.Error())
-						close(done)
-					}
-				} else {
-					logging.WARN("未知非文本消息")
-				}
-			}
-
-		}
-	}()
-
-	for {
-		select {
-		case <-done:
-			return
-		default:
-			t, message, err := c.Conn.ReadMessage()
+			t, message, err := c.miraiConn.ReadMessage()
 			if err != nil {
-				logging.ERROR("从CQBot读取消息失败: ", err.Error())
-				close(done)
+				logging.ERROR("从Mirai读取消息失败: ", err.Error())
+				c.miraiConn.Close()
+				c.ConnectMirai()
+				continue
 			}
 			if t == websocket.TextMessage {
-				err = c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
+				err := c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
 				if err != nil {
-					logging.ERROR("向CQBot回复失败: ", err.Error())
-					close(done)
+					logging.ERROR("向CQbot发送消息失败: ", err.Error())
+					c.cqConn.Close()
+					c.ConnectCQBot()
+					continue
 				}
 			} else {
 				logging.WARN("未知非文本消息")
 			}
 		}
+	}()
+
+	for {
+		t, message, err := c.cqConn.ReadMessage()
+		if err != nil {
+			logging.ERROR("从CQBot读取消息失败: ", err.Error())
+			c.cqConn.Close()
+			c.ConnectCQBot()
+			continue
+		}
+		if t == websocket.TextMessage {
+			err = c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
+			if err != nil {
+				logging.ERROR("向CQBot回复失败: ", err.Error())
+				c.cqConn.Close()
+				c.ConnectCQBot()
+				continue
+			}
+		} else {
+			logging.WARN("未知非文本消息")
+		}
+
 	}
 }

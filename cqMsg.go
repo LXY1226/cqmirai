@@ -35,7 +35,7 @@ func (c *CMiraiConn) DoReq(method, path, param string, body []byte) *fastjson.Va
 	return j
 }
 
-func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) string {
+func (c *CMiraiConn) uploadImage(dataURI string, imgTarget string) string {
 	img, err := base64.StdEncoding.DecodeString(dataURI[9:])
 	if err != nil {
 		logging.WARN("反Base64出错: ", err.Error())
@@ -45,11 +45,11 @@ func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) string {
 	defer fasthttp.ReleaseRequest(req)
 	resp := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(resp)
-	req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/uploadImage")
+	req.SetRequestURI("http://" + c.miraiAddr + "/uploadImage")
 	req.Header.SetMethod("POST")
 	buf := new(bytes.Buffer)
 	w := multipart.NewWriter(buf)
-	w.WriteField("sessionKey", c.miraiConn.sessionKey)
+	w.WriteField("sessionKey", c.sessionKey)
 	w.WriteField("type", imgTarget)
 	fw, err := w.CreateFormFile("img", imgTarget)
 	fw.Write(img)
@@ -71,11 +71,7 @@ func (c *CMiraiWSRConn) uploadImage(dataURI string, imgTarget string) string {
 	return string(j.GetStringBytes("imageId"))
 }
 
-func quoteASCII(msg string) []byte {
-	return []byte(strconv.QuoteToASCII(msg))
-}
-
-func (c *CMiraiWSRConn) parseCQMsg(msg string, imgTarget string) []MessageChain {
+func (c *CMiraiConn) parseCQMsg(msg string, imgTarget string) []MessageChain {
 	last := 0
 	var mc []MessageChain
 	for {
@@ -118,7 +114,7 @@ func (c *CMiraiWSRConn) parseCQMsg(msg string, imgTarget string) []MessageChain 
 	return mc
 }
 
-func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []MessageChain {
+func (c *CMiraiConn) formMsgChain(msg jsoniter.Any, imgTarget string) []MessageChain {
 	switch msg.ValueType() {
 	case jsoniter.StringValue:
 		return c.parseCQMsg(msg.ToString(), imgTarget)
@@ -175,7 +171,7 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 	return nil
 }
 
-func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
+func (c *CMiraiConn) sendMsg(params string) *cqResponse {
 	msg := new(cqMessage)
 	err := json.UnmarshalFromString(params, msg)
 	if err != nil {
@@ -189,17 +185,17 @@ func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
 	req.Header.SetMethod("POST")
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 	miraiMsg := new(MessageReq)
-	miraiMsg.SessionKey = c.miraiConn.sessionKey
+	miraiMsg.SessionKey = c.sessionKey
 	var imgTarget string
 	switch msg.MessageType {
 	case "group":
 		miraiMsg.Target = msg.GroupID
 		imgTarget = "group"
-		req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/sendGroupMessage")
+		req.SetRequestURI("http://" + c.miraiAddr + "/sendGroupMessage")
 	case "private":
 		miraiMsg.Target = msg.UserID
 		imgTarget = "friend"
-		req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/sendFriendMessage")
+		req.SetRequestURI("http://" + c.miraiAddr + "/sendFriendMessage")
 	default:
 		logging.WARN("尚未实现的msg.MessageType: ", msg.MessageType)
 		return nil
@@ -234,7 +230,7 @@ func (c *CMiraiWSRConn) sendMsg(params string) *cqResponse {
 	return rs
 }
 
-func (c *CMiraiWSRConn) getGroupMemberInfo(params string) *cqResponse {
+func (c *CMiraiConn) getGroupMemberInfo(params string) *cqResponse {
 	msg := new(cqGroupMemberInfoReq)
 	err := json.UnmarshalFromString(params, msg)
 	if err != nil {
@@ -255,7 +251,7 @@ func (c *CMiraiWSRConn) getGroupMemberInfo(params string) *cqResponse {
 	}
 }
 
-func (c *CMiraiWSRConn) setGroupBan(params string) *cqResponse {
+func (c *CMiraiConn) setGroupBan(params string) *cqResponse {
 	msg := new(cqGroupBanReq) // !!!!!!!!!!!!!!!!!!!!!!
 	err := json.UnmarshalFromString(params, msg)
 	if err != nil {
@@ -270,9 +266,9 @@ func (c *CMiraiWSRConn) setGroupBan(params string) *cqResponse {
 	req.Header.SetMethod("POST")
 	req.Header.Add("Content-Type", "application/json; charset=utf-8")
 
-	req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/mute")
+	req.SetRequestURI("http://" + c.miraiAddr + "/mute")
 	mReq := new(MuteReq) // !!!!!!!!!!!!!!!!!!!!!!
-	mReq.SessionKey = c.miraiConn.sessionKey
+	mReq.SessionKey = c.sessionKey
 	mReq.Target = msg.GroupID
 	mReq.MemberID = msg.UserID
 	mReq.Time = msg.Duration
@@ -302,7 +298,7 @@ func (c *CMiraiWSRConn) setGroupBan(params string) *cqResponse {
 	return rs
 }
 
-func (c *CMiraiWSRConn) getGroupMemberList(params string) *cqResponse {
+func (c *CMiraiConn) getGroupMemberList(params string) *cqResponse {
 	msg := new(cqGroupMemberListReq)
 	err := json.UnmarshalFromString(params, msg)
 	if err != nil {
@@ -316,7 +312,7 @@ func (c *CMiraiWSRConn) getGroupMemberList(params string) *cqResponse {
 	defer fasthttp.ReleaseResponse(resp)
 	req.Header.SetMethod("GET")
 
-	req.SetRequestURI("http://" + c.miraiConn.miraiAddr + "/memberList?sessionKey=" + c.miraiConn.sessionKey + "&target=" + strconv.Itoa(msg.GroupID))
+	req.SetRequestURI("http://" + c.miraiAddr + "/memberList?sessionKey=" + c.sessionKey + "&target=" + strconv.Itoa(msg.GroupID))
 
 	err = fasthttp.Do(req, resp)
 	if err != nil {

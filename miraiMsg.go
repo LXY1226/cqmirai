@@ -50,7 +50,7 @@ func formatPerm(miraiPrem string) string {
 	}
 }
 
-func (c *CMiraiWSRConn) MiraiGroupMessage(miraiMsg *Message) []byte {
+func (c *CMiraiConn) MiraiGroupMessage(miraiMsg *Message) []byte {
 	o, err := json.Marshal(cqGroupMemberInfoResp{
 		GroupID:      miraiMsg.Sender.Group.ID,
 		LastSentTime: time.Now().Unix(),
@@ -74,7 +74,7 @@ func (c *CMiraiWSRConn) MiraiGroupMessage(miraiMsg *Message) []byte {
 	parseMsgChain(miraiMsg, cqMsg)
 	cqMsg.MessageType = "group"
 	cqMsg.PostType = "message" //TODO 需要更多适配?
-	cqMsg.SelfID = c.miraiConn.i64qNumber
+	cqMsg.SelfID = c.i64qNumber
 	cqMsg.Sender.Nickname = miraiMsg.Sender.MemberName
 	cqMsg.Sender.Role = formatPerm(miraiMsg.Sender.Permission)
 	cqMsg.Sender.UserID = miraiMsg.Sender.ID
@@ -87,12 +87,12 @@ func (c *CMiraiWSRConn) MiraiGroupMessage(miraiMsg *Message) []byte {
 	return o
 }
 
-func (c *CMiraiWSRConn) MiraiFriendMessage(miraiMsg *Message) []byte {
+func (c *CMiraiConn) MiraiFriendMessage(miraiMsg *Message) []byte {
 	cqMsg := new(cqMessage)
 	parseMsgChain(miraiMsg, cqMsg)
 	cqMsg.MessageType = "private"
 	cqMsg.PostType = "message" //TODO 需要更多适配?
-	cqMsg.SelfID = c.miraiConn.i64qNumber
+	cqMsg.SelfID = c.i64qNumber
 	cqMsg.Sender.Nickname = miraiMsg.Sender.MemberName
 	cqMsg.Sender.UserID = miraiMsg.Sender.ID
 	cqMsg.UserID = miraiMsg.Sender.ID
