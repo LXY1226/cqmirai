@@ -7,8 +7,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fastjson"
 	"net/http"
-	"os"
 	"strconv"
+	"time"
 )
 
 type CMiraiConn struct {
@@ -39,8 +39,15 @@ func main() {
 	userData = make(map[int]map[int][]byte)
 	logging.Init()
 	miraiConn := NewMirai(miraiAddr, authKey, qNumber)
-	miraiConnWSR := miraiConn.NewCQWSR(cqWSRAddr)
-	miraiConnWSR.ListenAndRedirect()
+
+	for {
+		miraiConnWSR := miraiConn.NewCQWSR(cqWSRAddr)
+		if miraiConnWSR != nil {
+			miraiConnWSR.ListenAndRedirect()
+		}
+		logging.WARN("连线失败")
+		time.Sleep(10 * time.Second)
+	}
 }
 
 func NewMirai(miraiAddr, authKey string, qNumber int) *CMiraiConn {
@@ -118,48 +125,51 @@ func (cm *CMiraiConn) NewCQWSR(cqWSRAddr string) *CMiraiWSRConn {
 // 阻塞
 func (c *CMiraiWSRConn) ListenAndRedirect() {
 	logging.INFO("连接已建立")
-	//done := make(chan struct{})
+	done := make(chan struct{})
 	go func() {
 		for {
-			//defer close(done)
-			for {
+			select {
+			case <-done:
+				return
+			default:
 				t, message, err := c.miraiConn.ReadMessage()
 				if err != nil {
 					logging.ERROR("从Mirai读取消息失败: ", err.Error())
-					os.Exit(0) // TODO 多实例优化
+					close(done)
 				}
 				if t == websocket.TextMessage {
 					err := c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
 					if err != nil {
 						logging.ERROR("向CQbot发送消息失败: ", err.Error())
-						os.Exit(0) // TODO 多实例优化
+						close(done)
 					}
 				} else {
 					logging.WARN("未知非文本消息")
 				}
 			}
+
 		}
 	}()
 
 	for {
-		//select {
-		//case <-done:
-		//	return
-		//case t := <-ticker.C:
-		t, message, err := c.Conn.ReadMessage()
-		if err != nil {
-			logging.ERROR("从CQBot读取消息失败: ", err.Error())
-			os.Exit(0) // TODO 多实例优化
-		}
-		if t == websocket.TextMessage {
-
-			err = c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
+		select {
+		case <-done:
+			return
+		default:
+			t, message, err := c.Conn.ReadMessage()
 			if err != nil {
-				logging.ERROR("向CQBot回复失败: ", err.Error())
-				os.Exit(0) // TODO 多实例优化
+				logging.ERROR("从CQBot读取消息失败: ", err.Error())
+				close(done)
 			}
-		} else {
-			logging.WARN("未知非文本消息")
+			if t == websocket.TextMessage {
+				err = c.Conn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
+				if err != nil {
+					logging.ERROR("向CQBot回复失败: ", err.Error())
+					close(done)
+				}
+			} else {
+				logging.WARN("未知非文本消息")
+			}
 		}
 	}
 }
