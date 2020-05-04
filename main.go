@@ -135,7 +135,8 @@ func (c *CMiraiConn) Redirect() {
 			if err != nil {
 				logging.ERROR("从Mirai读取消息失败: ", err.Error())
 				c.miraiConn.Close()
-				c.ConnectMirai()
+				for !c.ConnectMirai() {
+				}
 				continue
 			}
 			if t == websocket.TextMessage {
@@ -143,7 +144,8 @@ func (c *CMiraiConn) Redirect() {
 				if err != nil {
 					logging.ERROR("向CQbot发送消息失败: ", err.Error())
 					c.cqConn.Close()
-					c.ConnectCQBot()
+					for !c.ConnectCQBot() {
+					}
 					continue
 				}
 			} else {
@@ -157,7 +159,8 @@ func (c *CMiraiConn) Redirect() {
 		if err != nil {
 			logging.ERROR("从CQBot读取消息失败: ", err.Error())
 			c.cqConn.Close()
-			c.ConnectCQBot()
+			for !c.ConnectCQBot() {
+			}
 			continue
 		}
 		if t == websocket.TextMessage {
@@ -165,7 +168,8 @@ func (c *CMiraiConn) Redirect() {
 			if err != nil {
 				logging.ERROR("向CQBot回复失败: ", err.Error())
 				c.cqConn.Close()
-				c.ConnectCQBot()
+				for !c.ConnectCQBot() {
+				}
 				continue
 			}
 		} else {
