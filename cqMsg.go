@@ -78,12 +78,17 @@ func quoteASCII(msg string) []byte {
 func (c *CMiraiWSRConn) parseCQMsg(msg string, imgTarget string) []MessageChain {
 	last := 0
 	var mc []MessageChain
-	for start := strings.Index(msg[last:], `[CQ`); start != -1; start = strings.Index(msg[last:], `[CQ`) {
+	for {
+		start := strings.Index(msg[last:], `[CQ`)
+		if start == -1 {
+			break
+		}
+		start += last
 		mc = append(mc, MessageChain{
 			Type: "Plain",
 			Text: []byte(strconv.QuoteToASCII(msg[last:start])),
 		})
-		end := strings.Index(msg, `]`)
+		end := strings.Index(msg[last:], `]`) + last
 		last = end + 1
 		switch msg[start+4 : start+6] {
 		case "at":
