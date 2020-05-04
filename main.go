@@ -38,8 +38,8 @@ func main() {
 	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
 	userData = make(map[int]map[int][]byte)
 	logging.Init()
-	miraiConn := NewMirai("127.0.0.1:8088", "1234567890", 3215463081)
-	miraiConnWSR := miraiConn.NewCQWSR("127.0.0.1:8080")
+	miraiConn := NewMirai(miraiAddr, authKey, qNumber)
+	miraiConnWSR := miraiConn.NewCQWSR(cqWSRAddr)
 	miraiConnWSR.ListenAndRedirect()
 }
 
