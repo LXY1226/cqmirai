@@ -9,6 +9,7 @@ import (
 	"github.com/valyala/fastjson"
 	"mime/multipart"
 	"strconv"
+	"strings"
 )
 
 func (c *CMiraiConn) DoReq(method, path, param string, body []byte) *fastjson.Value {
@@ -74,13 +75,41 @@ func quoteASCII(msg string) []byte {
 	return []byte(strconv.QuoteToASCII(msg))
 }
 
+func parseCQMsg(msg string) []MessageChain {
+	last := 0
+	var mc []MessageChain
+	for start := strings.Index(msg[last:], `[CQ`); start != -1; start = strings.Index(msg[last:], `[CQ`) {
+		mc = append(mc, MessageChain{
+			Type: "Plain",
+			Text: []byte(strconv.QuoteToASCII(msg[last:start])),
+		})
+		end := strings.Index(msg, `]`)
+		last = end + 1
+		switch msg[start+4 : start+6] {
+		case "at":
+			num, err := strconv.Atoi(msg[strings.Index(msg[start+5:end], "qq=")+start+8 : end])
+			if err != nil {
+				logging.WARN("CQ码解析失败：", msg[start:end])
+			}
+			mc = append(mc, MessageChain{
+				Type:   "At",
+				Target: num,
+			})
+		default:
+			logging.WARN("CQ码未解析：", msg[start:end])
+		}
+	}
+	mc = append(mc, MessageChain{
+		Type: "Plain",
+		Text: []byte(strconv.QuoteToASCII(msg[last:])),
+	})
+	return mc
+}
+
 func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []MessageChain {
 	switch msg.ValueType() {
 	case jsoniter.StringValue:
-		return []MessageChain{{
-			Type: "Plain",
-			Text: quoteASCII(msg.ToString()),
-		}}
+		return parseCQMsg(msg.ToString())
 	case jsoniter.ObjectValue:
 		m := new(cqMsgData)
 		err := json.UnmarshalFromString(msg.ToString(), &m)
@@ -95,10 +124,7 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 				Target: m.Data.Get("qq").ToInt(),
 			}}
 		case "text":
-			return []MessageChain{{
-				Type: "Plain",
-				Text: quoteASCII(m.Data.Get("text").ToString()),
-			}}
+			return parseCQMsg(m.Data.Get("text").ToString())
 		case "image":
 			return []MessageChain{{
 				Type:    "Image",
@@ -121,10 +147,7 @@ func (c *CMiraiWSRConn) formMsgChain(msg jsoniter.Any, imgTarget string) []Messa
 					Target: msg.Data.Get("qq").ToInt(),
 				})
 			case "text":
-				cs = append(cs, MessageChain{
-					Type: "Plain",
-					Text: quoteASCII(msg.Data.Get("text").ToString()),
-				})
+				cs = append(cs, parseCQMsg(msg.Data.Get("text").ToString())...)
 			case "image":
 				c.uploadImage(msg.Data.Get("file").ToString(), imgTarget)
 				cs = append(cs, MessageChain{
