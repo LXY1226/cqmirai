@@ -171,9 +171,9 @@ func (c *CMiraiConn) formMsgChain(msg jsoniter.Any, imgTarget string) []MessageC
 	return nil
 }
 
-func (c *CMiraiConn) sendMsg(params string) *cqResponse {
+func (c *CMiraiConn) sendMsg(params []byte) *cqResponse {
 	msg := new(cqMessage)
-	err := json.UnmarshalFromString(params, msg)
+	err := json.Unmarshal(params, msg)
 	if err != nil {
 		logging.WARN("解析CQ消息失败: ", err.Error())
 		return nil
@@ -230,9 +230,9 @@ func (c *CMiraiConn) sendMsg(params string) *cqResponse {
 	return rs
 }
 
-func (c *CMiraiConn) getGroupMemberInfo(params string) *cqResponse {
+func (c *CMiraiConn) getGroupMemberInfo(params []byte) *cqResponse {
 	msg := new(cqGroupMemberInfoReq)
-	err := json.UnmarshalFromString(params, msg)
+	err := json.Unmarshal(params, msg)
 	if err != nil {
 		logging.WARN("解析CQ消息失败: ", err.Error())
 		return nil
@@ -251,9 +251,9 @@ func (c *CMiraiConn) getGroupMemberInfo(params string) *cqResponse {
 	}
 }
 
-func (c *CMiraiConn) setGroupBan(params string) *cqResponse {
+func (c *CMiraiConn) setGroupBan(params []byte) *cqResponse {
 	msg := new(cqGroupBanReq) // !!!!!!!!!!!!!!!!!!!!!!
-	err := json.UnmarshalFromString(params, msg)
+	err := json.Unmarshal(params, msg)
 	if err != nil {
 		logging.WARN("解析CQ消息失败: ", err.Error())
 		return nil
@@ -298,9 +298,9 @@ func (c *CMiraiConn) setGroupBan(params string) *cqResponse {
 	return rs
 }
 
-func (c *CMiraiConn) getGroupMemberList(params string) *cqResponse {
+func (c *CMiraiConn) getGroupMemberList(params []byte) *cqResponse {
 	msg := new(cqGroupMemberListReq)
-	err := json.UnmarshalFromString(params, msg)
+	err := json.Unmarshal(params, msg)
 	if err != nil {
 		logging.WARN("解析CQ消息失败: ", err.Error())
 		return nil
@@ -348,7 +348,7 @@ func (c *CMiraiConn) getGroupMemberList(params string) *cqResponse {
 	return rs
 }
 
-func (c *CMiraiConn) getGroupList(params string) *cqResponse {
+func (c *CMiraiConn) getGroupList(params []byte) *cqResponse {
 	req := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(req)
 	resp := fasthttp.AcquireResponse()

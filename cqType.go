@@ -66,7 +66,7 @@ type cqAnonymous struct {
 
 type cqRequest struct {
 	Action string              `json:"action"`
-	Params jsoniter.Any        `json:"params"`
+	Params jsoniter.RawMessage `json:"params"`
 	Echo   jsoniter.RawMessage `json:"echo"`
 }
 

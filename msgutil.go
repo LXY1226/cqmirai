@@ -20,17 +20,17 @@ func (c *CMiraiConn) TransMsgToMirai(msg []byte) []byte {
 	var cqResp *cqResponse
 	switch req.Action {
 	case "send_msg":
-		cqResp = c.sendMsg(req.Params.ToString())
+		cqResp = c.sendMsg(req.Params)
 	case "get_group_member_info":
-		cqResp = c.getGroupMemberInfo(req.Params.ToString())
+		cqResp = c.getGroupMemberInfo(req.Params)
 	case "set_group_ban":
-		cqResp = c.setGroupBan(req.Params.ToString())
+		cqResp = c.setGroupBan(req.Params)
 	case "get_group_member_list":
-		cqResp = c.getGroupMemberList(req.Params.ToString())
+		cqResp = c.getGroupMemberList(req.Params)
 	case "get_group_list":
-		cqResp = c.getGroupMemberList(req.Params.ToString())
+		cqResp = c.getGroupList(req.Params)
 	default:
-		logging.INFO("< 未知请求：", req.Params.ToString())
+		logging.INFO("< 未知请求：", string(req.Params))
 	}
 
 	if cqResp == nil {
