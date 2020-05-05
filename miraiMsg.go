@@ -55,6 +55,7 @@ func (c *CMiraiConn) MiraiGroupMessage(miraiMsg *Message) []byte {
 		GroupID:      miraiMsg.Sender.Group.ID,
 		LastSentTime: time.Now().Unix(),
 		Nickname:     miraiMsg.Sender.MemberName,
+		Card:         miraiMsg.Sender.MemberName,
 		Role:         formatPerm(miraiMsg.Sender.Permission),
 		UserID:       miraiMsg.Sender.ID,
 	})
