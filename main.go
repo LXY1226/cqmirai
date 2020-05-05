@@ -7,6 +7,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fastjson"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 )
@@ -138,10 +139,8 @@ func (c *CMiraiConn) Redirect() {
 			if err != nil {
 				logging.ERROR("从Mirai读取消息失败: ", err.Error())
 				c.miraiConn.Close()
-				for !c.ConnectMirai() {
-					time.Sleep(3 * time.Second)
-				}
-				continue
+				c.cqConn.Close()
+				os.Exit(1)
 			}
 			if t == websocket.TextMessage {
 				if c.cqConn != nil {
