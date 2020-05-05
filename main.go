@@ -29,21 +29,13 @@ type CMiraiConn struct {
 	cqAddr     string
 }
 
-type CMiraiWSRConn struct {
-	cqAddr string // "127.0.0.1:8080"
-	*websocket.Conn
-	miraiConn *CMiraiConn
-}
-
 var parserPool fastjson.ParserPool
 
 var userData map[int]map[int][]byte
 var IteratorPool jsoniter.IteratorPool
 
 func main() {
-	/*	m := sJson.Unmarshal([]byte("{\"action\": \"get_group_member_info\", \"params\": {\"self_id\": 2702342827, \"group_id\": 1065962966, \"user_id\": 767763591, \"no_cache\": true}, \"echo\": {\"seq\": 77}}"))
-		println(m)
-		os.Exit(0)*/
+
 	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
 	userData = make(map[int]map[int][]byte)
 	logging.Init()

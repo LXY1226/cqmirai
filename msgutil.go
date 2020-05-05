@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/elliptic"
 	"gitee.com/LXY1226/logging"
 	"github.com/json-iterator/go"
 )
@@ -9,9 +8,6 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func (c *CMiraiConn) TransMsgToMirai(msg []byte) []byte {
-	//iter := IteratorPool.BorrowIterator(msg)
-	//iter.
-	elliptic.Curve.ScalarMult()
 	req := new(cqRequest)
 	err := json.Unmarshal(msg, &req)
 	if err != nil {
