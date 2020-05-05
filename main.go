@@ -144,14 +144,17 @@ func (c *CMiraiConn) Redirect() {
 				continue
 			}
 			if t == websocket.TextMessage {
-				err := c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
-				if err != nil {
-					logging.ERROR("向CQbot发送消息失败: ", err.Error())
-					c.cqConn.Close()
-					for !c.ConnectCQBot() {
-						time.Sleep(3 * time.Second)
+				if c.cqConn != nil {
+					err := c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
+					if err != nil {
+						logging.ERROR("向CQbot发送消息失败: ", err.Error())
+						c.cqConn.Close()
+						c.cqConn = nil
+						for !c.ConnectCQBot() {
+							time.Sleep(3 * time.Second)
+						}
+						continue
 					}
-					continue
 				}
 			} else {
 				logging.WARN("未知非文本消息")
@@ -170,14 +173,17 @@ func (c *CMiraiConn) Redirect() {
 			continue
 		}
 		if t == websocket.TextMessage {
-			err = c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
-			if err != nil {
-				logging.ERROR("向CQBot回复失败: ", err.Error())
-				c.cqConn.Close()
-				for !c.ConnectCQBot() {
-					time.Sleep(3 * time.Second)
+			if c.cqConn != nil {
+				err = c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToMirai(message))
+				if err != nil {
+					logging.ERROR("向CQBot回复失败: ", err.Error())
+					c.cqConn.Close()
+					c.cqConn = nil
+					for !c.ConnectCQBot() {
+						time.Sleep(3 * time.Second)
+					}
+					continue
 				}
-				continue
 			}
 		} else {
 			logging.WARN("未知非文本消息")
