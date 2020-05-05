@@ -88,7 +88,7 @@ func (c *CMiraiConn) parseCQMsg(msg string, imgTarget string) []MessageChain {
 		last = end + 1
 		switch msg[start+4 : start+6] {
 		case "at":
-			num, err := strconv.Atoi(msg[strings.Index(msg[start+6:end], "qq=")+start+8 : end])
+			num, err := strconv.Atoi(msg[strings.Index(msg[start+6:end], "qq=")+start+9 : end])
 			if err != nil {
 				logging.WARN("CQ码解析失败：", msg[start:end])
 			}
