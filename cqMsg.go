@@ -329,13 +329,54 @@ func (c *CMiraiConn) getGroupMemberList(params string) *cqResponse {
 	}
 
 	rs := new(cqResponse)
-	var re cqMemberLists
+	var re []cqMemberList
 	for _, info := range rj {
 		re = append(re, cqMemberList{
 			UserID:   info.ID,
 			GroupID:  info.Group.ID,
 			Nickname: info.MemberName,
 			Role:     formatPerm(info.Permission),
+		})
+	}
+	rs.Data, err = json.Marshal(&re)
+	if err != nil {
+		logging.WARN("生成CQ回复出错: ", err.Error())
+		return nil
+	}
+	rs.Retcode = 0
+	rs.Status = "ok"
+	return rs
+}
+
+func (c *CMiraiConn) getGroupList(params string) *cqResponse {
+	req := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(req)
+	resp := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(resp)
+	req.Header.SetMethod("GET")
+
+	req.SetRequestURI("http://" + c.miraiAddr + "/groupList?sessionKey=" + c.sessionKey)
+
+	err := fasthttp.Do(req, resp)
+	if err != nil {
+		logging.WARN("向Mirai请求出错: ", err.Error())
+		return nil
+	}
+
+	var rj GroupListResp
+
+	err = json.Unmarshal(resp.Body(), &rj)
+	if err != nil {
+		logging.WARN("解析Mirai回复出错: ", err.Error())
+		return nil
+	}
+
+	rs := new(cqResponse)
+	var re []cqGroupListResp
+	for _, info := range rj {
+		re = append(re, cqGroupListResp{
+			GroupID:   info.ID,
+			GroupName: info.Name,
 		})
 	}
 	rs.Data, err = json.Marshal(&re)

@@ -74,6 +74,12 @@ type MemberListResp []struct {
 	} `json:"group"`
 }
 
+type GroupListResp []struct {
+	ID         int    `json:"id"`
+	Name       string `json:"name"`
+	Permission string `json:"permission"`
+}
+
 type Sender struct {
 	ID         int    `json:"id"`
 	MemberName string `json:"memberName"`

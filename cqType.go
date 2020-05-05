@@ -26,8 +26,6 @@ type cqMessage struct {
 	Title       string       `json:"title,omitempty"`
 }
 
-type cqMemberLists []cqMemberList
-
 type cqMemberList struct {
 	Age             int    `json:"age,omitempty"`
 	Area            string `json:"area,omitempty"`
@@ -118,4 +116,9 @@ type cqGroupMemberInfoResp struct {
 	TitleExpireTime int    `json:"title_expire_time,omitempty"`
 	Unfriendly      bool   `json:"unfriendly,omitempty"`
 	UserID          int    `json:"user_id,omitempty"`
+}
+
+type cqGroupListResp struct {
+	GroupID   int    `json:"group_id,omitempty"`
+	GroupName string `json:"group_name,omitempty"`
 }

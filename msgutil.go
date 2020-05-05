@@ -27,6 +27,8 @@ func (c *CMiraiConn) TransMsgToMirai(msg []byte) []byte {
 		cqResp = c.setGroupBan(req.Params.ToString())
 	case "get_group_member_list":
 		cqResp = c.getGroupMemberList(req.Params.ToString())
+	case "get_group_list":
+		cqResp = c.getGroupMemberList(req.Params.ToString())
 	default:
 		logging.INFO("< 未知请求：", req.Params.ToString())
 	}
