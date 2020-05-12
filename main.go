@@ -35,7 +35,7 @@ var userData map[int]map[int][]byte
 func main() {
 
 	userData = make(map[int]map[int][]byte)
-	logging.Init()
+	logging.Init("cqMirai", "v0.03")
 
 	miraiConn := CMiraiConn{
 		authKey:    authKey,
