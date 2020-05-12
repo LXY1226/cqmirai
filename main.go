@@ -3,7 +3,6 @@ package main
 import (
 	"gitee.com/LXY1226/logging"
 	"github.com/gorilla/websocket"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/valyala/fasthttp"
 	"github.com/valyala/fastjson"
 	"net/http"
@@ -32,11 +31,9 @@ type CMiraiConn struct {
 var parserPool fastjson.ParserPool
 
 var userData map[int]map[int][]byte
-var IteratorPool jsoniter.IteratorPool
 
 func main() {
 
-	IteratorPool = jsoniter.Config{EscapeHTML: false}.Froze()
 	userData = make(map[int]map[int][]byte)
 	logging.Init()
 

@@ -18,6 +18,8 @@ func (c *CMiraiConn) TransMsgToMirai(msg []byte) []byte {
 	var cqResp *cqResponse
 	switch req.Action {
 	case "send_msg":
+		fallthrough
+	case "send_group_msg":
 		cqResp = c.sendMsg(req.Params)
 	case "get_group_member_info":
 		cqResp = c.getGroupMemberInfo(req.Params)
