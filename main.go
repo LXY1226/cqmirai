@@ -21,7 +21,8 @@ type CMiraiConn struct {
 	i64qNumber int    // 2702342827
 	miraiAddr  string // "127.0.0.1:8086"
 	sessionKey string
-	miraiConn  *websocket.Conn
+	msgConn    *websocket.Conn
+	eventConn  *websocket.Conn
 
 	cqConn     *websocket.Conn
 	cqConnType int
@@ -93,9 +94,14 @@ func (c *CMiraiConn) ConnectMirai() bool {
 		logging.WARN("解析Mirai会话失败: ", string(j.GetStringBytes("msg")))
 		return false
 	}
-	c.miraiConn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/all?sessionKey="+c.sessionKey, nil)
+	c.msgConn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/message?sessionKey="+c.sessionKey, nil)
 	if err != nil {
-		logging.WARN("连接至Mirai失败: ", err.Error())
+		logging.WARN("连接至Mirai消息失败: ", err.Error())
+		return false
+	}
+	c.eventConn, _, err = websocket.DefaultDialer.Dial("ws://"+c.miraiAddr+"/event?sessionKey="+c.sessionKey, nil)
+	if err != nil {
+		logging.WARN("连接至Mirai消息失败: ", err.Error())
 		return false
 	}
 	return true
@@ -122,12 +128,12 @@ func (c *CMiraiConn) ConnectCQBot() bool {
 // 阻塞
 func (c *CMiraiConn) Redirect() {
 	logging.INFO("连接已建立")
-	go func() {
+	var readFunc = func(inWS *websocket.Conn, outFunc func(msg []byte) []byte) {
 		for {
-			t, message, err := c.miraiConn.ReadMessage()
+			t, message, err := inWS.ReadMessage()
 			if err != nil {
 				logging.ERROR("从Mirai读取消息失败: ", err.Error())
-				c.miraiConn.Close()
+				c.msgConn.Close()
 				c.cqConn.Close()
 				os.Exit(1)
 			}
@@ -148,7 +154,10 @@ func (c *CMiraiConn) Redirect() {
 				logging.WARN("未知非文本消息")
 			}
 		}
-	}()
+	}
+
+	go readFunc(c.msgConn, c.TransMsgToCQ)
+	go readFunc(c.eventConn, c.TransEventToCQ)
 
 	for {
 		t, message, err := c.cqConn.ReadMessage()

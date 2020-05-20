@@ -8,6 +8,11 @@ type Message struct {
 	Sender       Sender        `json:"sender"`
 }
 
+type Event struct {
+	Type string `json:"type"`
+	data jsoniter.RawMessage
+}
+
 type MessageChain struct {
 	Type     string              `json:"type"`
 	Content  string              `json:"content,omitempty"`
@@ -93,24 +98,24 @@ type Sender struct {
 	} `json:"group"`
 }
 
-type Member  struct {
-        ID      int     `json:"id"`
-        MemberName      string  `json:"memberName"`
-        Permission      string  `json:"permission"`
-        Group   struct  {
-                ID      int     `json:"id"`
-                Name    string  `json:"name"`
-                Permission      string  `json:"permission"`
-        }       `json:"group"`
+type Member struct {
+	ID         int    `json:"id"`
+	MemberName string `json:"memberName"`
+	Permission string `json:"permission"`
+	Group      struct {
+		ID         int    `json:"id"`
+		Name       string `json:"name"`
+		Permission string `json:"permission"`
+	} `json:"group"`
 }
 
-type MemberJoinLeaveEvent struct {
-	Type	string	`json:"type"`
-	Member	Member	`json:"member"`
+type MemberJoinEvent struct {
+	Member Member `json:"member"`
 }
+
+type MemberLeaveEvent MemberJoinEvent
 
 type MemberLeaveEventKick struct {
-	Type	string	`json:"type"`
-	Member	Member	`json:"member"`
-	Operator Member `json"operator"`
+	Member   Member `json:"member"`
+	Operator Member `json:"operator"`
 }

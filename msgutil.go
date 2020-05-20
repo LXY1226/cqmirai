@@ -53,29 +53,36 @@ func (c *CMiraiConn) TransMsgToCQ(msg []byte) []byte {
 		return nil
 	}
 	logging.INFO("> ", miraiMsg.Type)
-	//c.MiraiMemberJoinEvent(miraiMsg)	
-//logging.INFO("HIT!",miraiMsg.Sender.ID)
+	//c.MiraiMemberJoinEvent(miraiMsg)
+	//logging.INFO("HIT!",miraiMsg.Sender.ID)
 	switch miraiMsg.Type {
 	case "GroupMessage":
 		return c.MiraiGroupMessage(miraiMsg)
 	case "FriendMessage":
 		return c.MiraiFriendMessage(miraiMsg)
+	default:
+		return nil
+
+	}
+}
+
+func (c *CMiraiConn) TransEventToCQ(msg []byte) []byte {
+	miraiEvent := new(Event)
+	//需要更好的玩法
+	miraiEvent.data = msg
+	err := json.Unmarshal(miraiEvent.data, miraiEvent)
+	if err != nil {
+		logging.WARN("解析Mirai消息失败: ", err.Error())
+		return nil
+	}
+	logging.INFO("> ", miraiEvent.Type)
+	//c.MiraiMemberJoinEvent(miraiEvent)
+	//logging.INFO("HIT!",miraiEvent.Sender.ID)
+	switch miraiEvent.Type {
 	case "MemberJoinEvent":
-		joinEventMsg := new(MemberJoinLeaveEvent)
-		joinEventErr := json.Unmarshal(msg, joinEventMsg)
-		if err != nil {
-                	logging.WARN("解析Mirai事件消息失败: ", joinEventErr.Error())
-                	return nil
-        	}
-		return c.MiraiMemberJoinEvent(joinEventMsg)
+		return c.MiraiMemberJoinEvent(miraiEvent)
 	case "MemberLeaveEventKick":
-		kickEventMsg := new(MemberLeaveEventKick)
-		kickEventErr := json.Unmarshal(msg, kickEventMsg)
-		if err != nil {
-                        logging.WARN("解析Mirai事件消息失败: ", kickEventErr.Error())
-                        return nil
-                }
-                return c.MiraiMemberLeaveEventKick(kickEventMsg)
+		return c.MiraiMemberLeaveEventKick(miraiEvent)
 	default:
 		return nil
 
