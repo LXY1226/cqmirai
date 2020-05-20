@@ -81,6 +81,8 @@ func (c *CMiraiConn) TransEventToCQ(msg []byte) []byte {
 	switch miraiEvent.Type {
 	case "MemberJoinEvent":
 		return c.MiraiMemberJoinEvent(miraiEvent)
+	case "MemberLeaveEvent":
+		return c.MiraiMemberLeaveEvent(miraiEvent)
 	case "MemberLeaveEventKick":
 		return c.MiraiMemberLeaveEventKick(miraiEvent)
 	default:
