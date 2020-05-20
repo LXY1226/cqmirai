@@ -122,3 +122,12 @@ type cqGroupListResp struct {
 	GroupID   int    `json:"group_id,omitempty"`
 	GroupName string `json:"group_name,omitempty"`
 }
+
+type cqGroupMemberEvent struct {
+	PostType	string	`json:"post_type"`
+	NoticeType	string	`json:"notice_type"`
+	SubType		string	`json:"sub_type,omitempty"`
+	GroupID		int	`json:"group_id,omitempty"`
+	OperatorID	int	`json:"operator_id,omitempty"`
+	UserID		int	`json:"user_id,omitempty"`
+}

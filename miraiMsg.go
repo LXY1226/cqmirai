@@ -85,6 +85,8 @@ func (c *CMiraiConn) MiraiGroupMessage(miraiMsg *Message) []byte {
 		logging.WARN("生成CQ回复错误：", err.Error())
 		return nil
 	}
+//	str := string(o)
+//      logging.INFO(str)
 	return o
 }
 
@@ -104,3 +106,58 @@ func (c *CMiraiConn) MiraiFriendMessage(miraiMsg *Message) []byte {
 	}
 	return o
 }
+
+func (c *CMiraiConn) MiraiMemberJoinEvent(miraiMsg *MemberJoinLeaveEvent) []byte {
+	cqMsg := new(cqGroupMemberEvent)
+	cqMsg.PostType = "notice"
+	cqMsg.NoticeType = "group_increase"
+	cqMsg.GroupID = miraiMsg.Member.Group.ID
+	cqMsg.UserID = miraiMsg.Member.ID
+	o, err := json.Marshal(cqMsg)
+	if err != nil {
+                logging.WARN("生成CQ回复错误：", err.Error())
+                return nil
+        }
+//	str := string(o)
+//	logging.INFO(str)
+//	logging.INFO(string(cqMsg.GroupID))       
+        return o
+}
+
+func (c *CMiraiConn) MiraiMemberLeaveEvent(miraiMsg *MemberJoinLeaveEvent) []byte {
+        cqMsg := new(cqGroupMemberEvent)
+        cqMsg.PostType = "notice"
+        cqMsg.NoticeType = "group_decrease"
+	cqMsg.SubType = "leave"
+        cqMsg.GroupID = miraiMsg.Member.Group.ID
+        cqMsg.UserID = miraiMsg.Member.ID
+        o, err := json.Marshal(cqMsg)
+        if err != nil {
+                logging.WARN("生成CQ回复错误：", err.Error())
+                return nil
+        }
+//      str := string(o)
+//      logging.INFO(str)
+//      logging.INFO(string(cqMsg.GroupID))
+        return o
+}
+
+func (c *CMiraiConn) MiraiMemberLeaveEventKick(miraiMsg *MemberLeaveEventKick) []byte {
+        cqMsg := new(cqGroupMemberEvent)
+        cqMsg.PostType = "notice"
+        cqMsg.NoticeType = "group_decrease"
+	cqMsg.SubType = "kick"
+        cqMsg.GroupID = miraiMsg.Member.Group.ID
+        cqMsg.UserID = miraiMsg.Member.ID
+	cqMsg.OperatorID = miraiMsg.Operator.ID
+        o, err := json.Marshal(cqMsg)
+        if err != nil {
+                logging.WARN("生成CQ回复错误：", err.Error())
+                return nil
+        }
+//      str := string(o)
+//      logging.INFO(str)
+//      logging.INFO(string(cqMsg.GroupID))
+        return o
+}
+
