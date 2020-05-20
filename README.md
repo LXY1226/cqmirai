@@ -76,6 +76,8 @@ cors:
 |-------------|---|---|
 |GroupMessage|接收群消息|部分可转化为CQ码|
 |FriendMessage|接收好友消息|部分可转化为CQ码，未测试|
+|MemberLeaveEvent|离群通知|正常工作|
+|MemberLeaveEventKick|踢群通知|正常工作|
 
 感谢mirai背后的momoe团队做出得贡献  
 以及mirai群大佬们对我的打磨  
