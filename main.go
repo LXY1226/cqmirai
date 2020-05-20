@@ -133,13 +133,13 @@ func (c *CMiraiConn) Redirect() {
 			t, message, err := inWS.ReadMessage()
 			if err != nil {
 				logging.ERROR("从Mirai读取消息失败: ", err.Error())
-				c.msgConn.Close()
+				inWS.Close()
 				c.cqConn.Close()
 				os.Exit(1)
 			}
 			if t == websocket.TextMessage {
 				if c.cqConn != nil {
-					err := c.cqConn.WriteMessage(websocket.TextMessage, c.TransMsgToCQ(message))
+					err := c.cqConn.WriteMessage(websocket.TextMessage, outFunc(message))
 					if err != nil {
 						logging.ERROR("向CQbot发送消息失败: ", err.Error())
 						c.cqConn.Close()
