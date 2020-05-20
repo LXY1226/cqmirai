@@ -92,3 +92,25 @@ type Sender struct {
 		Remark     string `json:"remark"`
 	} `json:"group"`
 }
+
+type Member  struct {
+        ID      int     `json:"id"`
+        MemberName      string  `json:"memberName"`
+        Permission      string  `json:"permission"`
+        Group   struct  {
+                ID      int     `json:"id"`
+                Name    string  `json:"name"`
+                Permission      string  `json:"permission"`
+        }       `json:"group"`
+}
+
+type MemberJoinLeaveEvent struct {
+	Type	string	`json:"type"`
+	Member	Member	`json:"member"`
+}
+
+type MemberLeaveEventKick struct {
+	Type	string	`json:"type"`
+	Member	Member	`json:"member"`
+	Operator Member `json"operator"`
+}
