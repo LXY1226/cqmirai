@@ -18,6 +18,8 @@ func (c *CMiraiConn) TransMsgToMirai(msg []byte) []byte {
 	var cqResp *cqResponse
 	switch req.Action {
 	case "send_msg":
+		fallthrough
+	case "send_group_msg":
 		cqResp = c.sendMsg(req.Params)
 	case "get_group_member_info":
 		cqResp = c.getGroupMemberInfo(req.Params)
@@ -51,11 +53,29 @@ func (c *CMiraiConn) TransMsgToCQ(msg []byte) []byte {
 		return nil
 	}
 	logging.INFO("> ", miraiMsg.Type)
+	//c.MiraiMemberJoinEvent(miraiMsg)	
+//logging.INFO("HIT!",miraiMsg.Sender.ID)
 	switch miraiMsg.Type {
 	case "GroupMessage":
 		return c.MiraiGroupMessage(miraiMsg)
 	case "FriendMessage":
 		return c.MiraiFriendMessage(miraiMsg)
+	case "MemberJoinEvent":
+		joinEventMsg := new(MemberJoinLeaveEvent)
+		joinEventErr := json.Unmarshal(msg, joinEventMsg)
+		if err != nil {
+                	logging.WARN("解析Mirai事件消息失败: ", joinEventErr.Error())
+                	return nil
+        	}
+		return c.MiraiMemberJoinEvent(joinEventMsg)
+	case "MemberLeaveEventKick":
+		kickEventMsg := new(MemberLeaveEventKick)
+		kickEventErr := json.Unmarshal(msg, kickEventMsg)
+		if err != nil {
+                        logging.WARN("解析Mirai事件消息失败: ", kickEventErr.Error())
+                        return nil
+                }
+                return c.MiraiMemberLeaveEventKick(kickEventMsg)
 	default:
 		return nil
 
