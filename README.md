@@ -70,14 +70,13 @@ cors:
 |set_group_ban|禁言|正常工作|
 |get_group_member_list|获取群员列表|正常工作|
 |get_group_list|获取群列表|正常工作|
-|get_group_member_list|获取群员列表|正常工作|
 
 |mirai-http|描述|备注|
 |-------------|---|---|
 |GroupMessage|接收群消息|部分可转化为CQ码|
 |FriendMessage|接收好友消息|部分可转化为CQ码，未测试|
 |MemberJoinEvent|进群通知|正常工作|
-|MemberLeaveEventQuick|离群通知|正常工作|
+|MemberLeaveEventQuit|离群通知|正常工作|
 |MemberLeaveEventKick|踢群通知|正常工作|
 
 感谢mirai背后的momoe团队做出得贡献  
