@@ -1,3 +1,6 @@
+# 已不再更新  
+参见[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)
+
 # CQMirai
 一个在酷Q和mirai之间 ~~蹦迪~~ 转换http消息的桥  
 ~~取名：酷Q的未来~~
